@@ -6,9 +6,6 @@ The recommendation based on the underlying idea that is if two persons both like
 ###### Home page
 ![home](https://user-images.githubusercontent.com/20842692/45380125-941d7500-b61f-11e8-852d-c09e9586b35b.png)
 
-###### Recommendation page
-![recom](https://user-images.githubusercontent.com/20842692/45380167-b57e6100-b61f-11e8-8ec0-e07c26daa4a3.jpg)
-
 ###### Rating page
 ![rate](https://user-images.githubusercontent.com/20842692/45380186-be6f3280-b61f-11e8-8ad6-8b967d1cba1a.png)
 
