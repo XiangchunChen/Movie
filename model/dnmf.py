@@ -4,6 +4,11 @@ import pandas as pd
 import tensorflow as tf
 from tensorflow import keras
 
+from sklearn.metrics.pairwise import cosine_similarity
+from sklearn.feature_extraction.text import CountVectorizer
+import warnings
+warnings.filterwarnings("ignore")
+
 
 tf.random.set_seed(10)
 
@@ -13,15 +18,14 @@ def reduce_item_dim(df_ratings):
     # reset movieId
     df_user_item = df_user_item.T.reset_index(drop=True).T
     # undo pivot/melt - compress data frame
-    df_ratings_new = df_user_item \
-        .reset_index('userId') \
-        .melt(
+    df_ratings_new = df_user_item.reset_index('userId').melt(
             id_vars='userId',
             value_vars=df_user_item.columns,
             var_name='movieId',
             value_name='rating')
     # drop nan and final clean up
     return df_ratings_new.dropna().sort_values(['userId', 'movieId']).reset_index(drop=True)
+
 
 def train(data, serialized_model_path):
     # calling the function
@@ -110,7 +114,7 @@ def train(data, serialized_model_path):
         lr=0.01, momentum=0.9, nesterov=True, clipvalue=1.0), metrics=[keras.metrics.RootMeanSquaredError()])
 
     history = dnmf_model_final.fit(
-        [userIds_vector, movieIds_vector], ratings_vector, epochs=1)
+        [userIds_vector, movieIds_vector], ratings_vector, epochs=100)
     
     dnmf_model_final.save(serialized_model_path)
 
@@ -130,7 +134,9 @@ def predict_one(userId_chosed, movieId_chosed):
         [userIdChosed_vector, movieIdChosed_vector])
     return predicted_rating[0][0]
     
-        
+
+
+
 if __name__ == "__main__":
     data_path = os.environ['DATA_PATH']
     movies_datapath = data_path
@@ -138,15 +144,43 @@ if __name__ == "__main__":
 
     """loading the ratings dataset"""
     # int32 (and float32) instead of int64 in order to use less memory
-    df_ratings = pd.read_csv(
-        os.path.join(movies_datapath, 'ratings.csv'),
-        usecols=['userId', 'movieId', 'rating'],
-        dtype={'userId': 'int32', 'movieId': 'int32', 'rating': 'float32'})
+
+    npy_path = os.path.join(trained_datapath, "cosine_sim.npy")
+
+    if not os.path.exists(npy_path):
+        df_movies = pd.read_csv(
+            os.path.join(movies_datapath, 'movies.csv'),
+            usecols=['movieId', 'title', 'genres'],
+            dtype={'movieId': 'int32', 'title': 'str', 'genres': 'str'})
+        
+
+        df_movies['genres'] = df_movies['genres'].map(lambda x: [_.lower() for _ in x.split('|')])
+        df_movies['title'] = df_movies['title'].map(lambda x: x.lower())
+
+        tmps = list()
+        for index, row in df_movies.iterrows():
+            words = ''
+            words =  ' '.join(row['genres']) + row['title']
+            tmps.append(words)
+
+        df_movies['Bag_of_words'] = tmps
+        df_movies = df_movies[['movieId', 'Bag_of_words']]
+
+        count = CountVectorizer()
+        count_matrix = count.fit_transform(df_movies['Bag_of_words'])
+        cosine_sim = cosine_similarity(count_matrix, count_matrix)
+        np.save(npy_path, cosine_sim)
+    else:
+        cosine_sim = np.load(npy_path)
 
     """function 'reduce_item_dim', necessary for the ratings dataset to be fed to our Neural Network model"""
 
     serialized_model_path = os.path.join(trained_datapath, "dnmf_model_final.h5")
     if not os.path.exists(serialized_model_path):
+        df_ratings = pd.read_csv(
+            os.path.join(movies_datapath, 'ratings.csv'),
+            usecols=['userId', 'movieId', 'rating'],
+            dtype={'userId': 'int32', 'movieId': 'int32', 'rating': 'float32'})
         _ = train(df_ratings, serialized_model_path)
     
     dnmf_model_final = keras.models.load_model(serialized_model_path)
@@ -157,3 +191,9 @@ if __name__ == "__main__":
     userId_chosed = chosed_tuple[0]
     movieId_chosed = chosed_tuple[1]
     print("User#{} would give *{:2.2} to the Movie#{}".format(userId_chosed, predicted_rating, movieId_chosed))
+    
+    recommended_movies = []
+    idx = chosed_tuple[1]
+    score_series = pd.Series(cosine_sim[idx]).sort_values(ascending = False)   # similarity scores in descending order
+    top_10_indices = list(score_series.iloc[1:11].index)   # to get the indices of top 10 most similar movies
+    print("Recommand Top10:", top_10_indices)
