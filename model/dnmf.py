@@ -9,6 +9,11 @@ from sklearn.feature_extraction.text import CountVectorizer
 import warnings
 warnings.filterwarnings("ignore")
 
+import matplotlib
+import matplotlib.pyplot as plt
+matplotlib.use('AGG')
+from sklearn.model_selection import learning_curve, ShuffleSplit
+
 
 tf.random.set_seed(10)
 
@@ -27,10 +32,9 @@ def reduce_item_dim(df_ratings):
     return df_ratings_new.dropna().sort_values(['userId', 'movieId']).reset_index(drop=True)
 
 
-def train(data, serialized_model_path):
-    # calling the function
-    df_ratings_reduced = reduce_item_dim(data)
 
+def train(df_ratings_reduced, serialized_model_path):
+    # calling the function
     """calculating the exact numbers of different userIds and movieIds"""
     n_users = len(df_ratings_reduced["userId"].unique())
     n_movies = len(df_ratings_reduced["movieId"].unique())
@@ -118,7 +122,7 @@ def train(data, serialized_model_path):
     
     dnmf_model_final.save(serialized_model_path)
 
-    return history
+    return history, dnmf_model_final
 
 
 def predict_one(userId_chosed, movieId_chosed):
@@ -134,8 +138,7 @@ def predict_one(userId_chosed, movieId_chosed):
         [userIdChosed_vector, movieIdChosed_vector])
     return predicted_rating[0][0]
     
-
-
+ 
 
 if __name__ == "__main__":
     data_path = os.environ['DATA_PATH']
@@ -176,14 +179,38 @@ if __name__ == "__main__":
     """function 'reduce_item_dim', necessary for the ratings dataset to be fed to our Neural Network model"""
 
     serialized_model_path = os.path.join(trained_datapath, "dnmf_model_final.h5")
-    if not os.path.exists(serialized_model_path):
-        df_ratings = pd.read_csv(
-            os.path.join(movies_datapath, 'ratings.csv'),
-            usecols=['userId', 'movieId', 'rating'],
-            dtype={'userId': 'int32', 'movieId': 'int32', 'rating': 'float32'})
-        _ = train(df_ratings, serialized_model_path)
+
+    df_ratings = pd.read_csv(
+        os.path.join(movies_datapath, 'ratings.csv'),
+        usecols=['userId', 'movieId', 'rating'],
+        dtype={'userId': 'int32', 'movieId': 'int32', 'rating': 'float32'})
     
-    dnmf_model_final = keras.models.load_model(serialized_model_path)
+    df_ratings  = reduce_item_dim(df_ratings)
+    count = df_ratings.shape[0]
+    train_data = df_ratings
+    # train_label = np.asarray(train_data.rating).astype(np.float32)
+
+    test_data = df_ratings[round(count*0.9):]
+    test_label = np.asarray(test_data.rating).astype(np.float32)
+
+    if not os.path.exists(serialized_model_path) or True:
+        history, dnmf_model_final = train(train_data, serialized_model_path)
+        
+        plt.plot(history.history['loss'])
+        plt.plot(history.history['root_mean_squared_error'])
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        plt.legend(['train', 'test'], loc='upper left')
+        plt.show()
+        plt.savefig('./learning_process.png')
+    
+    # dnmf_model_final = keras.models.load_model(serialized_model_path)
+    userIds_vector = np.asarray(test_data.userId).astype(np.int32)
+    movieIds_vector = np.asarray(test_data.movieId).astype(np.int32)
+
+    res = dnmf_model_final.evaluate([userIds_vector, movieIds_vector], test_label, verbose=0)
+    print(res)
 
     # choosing a (userId, movieId) couple not already existent in the ratings.csv file, for exemple (1, 10)
     chosed_tuple = (1, 10)
