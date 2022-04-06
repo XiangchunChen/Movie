@@ -80,4 +80,30 @@ Now open your browser and go to this address
 ```
 http://127.0.0.1:8000
 ```
-Thank you for visiting my repository.
+
+
+# Visualization
+
+To deploy the visualization environment, firstly you need to install the node.js (version 14.18.3) and yarn to your computer. Note that node.js with version 17.x will cause error 
+when compiling the code of manifold. I test the deployment on Ubuntu 20.04 and macOS 10.15.7.
+
+## Run locally
+
+Please run the following commands to set up your environment.
+
+```
+# install all dependencies in the root directory (visualization folder)
+yarn
+# go to examples/manifold directory
+cd examples/manifold
+# install dependencies for the app
+yarn
+# run the app
+yarn start
+```
+
+
+
+
+
+
