@@ -100,7 +100,9 @@ yarn
 yarn start
 ```
 
+![Compile](https://raw.githubusercontent.com/XiangchunChen/MovieRecommend/master/images/compile.jpg)
 
+![interface](https://raw.githubusercontent.com/XiangchunChen/MovieRecommend/master/images/interface.jpg)
 
 
 
