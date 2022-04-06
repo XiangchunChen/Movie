@@ -1,0 +1,16 @@
+# CMake build dir
+/build
+
+# IntelliJ
+/.idea
+/.vscode/
+
+# database
+**/db.sqlite3
+
+# python env
+/venv
+**/__pycache__
+
+# Vim swap files
+**/*.swp

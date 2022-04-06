@@ -23,9 +23,7 @@ SQLite
 ##### Requirements
 ```
 python 3.6
-
 pip3
-
 virtualenv
 ```
 ##### Setup to run
