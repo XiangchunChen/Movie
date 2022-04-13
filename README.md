@@ -105,5 +105,7 @@ yarn start
 ![interface](https://raw.githubusercontent.com/XiangchunChen/MovieRecommend/master/images/interface.jpg)
 
 
+## Demo data
 
+The demo data is saved in 'visualization/Demo_data/'. When uploading CSV to manifold, please upload features.csv to the first rectangle, mlp_yPred.csv and cla_yPred.csv to the second rectangle, yTrue.csv to the third rectangle.
 
